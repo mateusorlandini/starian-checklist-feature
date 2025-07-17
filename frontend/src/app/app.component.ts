@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { RouterOutlet } from '@angular/router';
+import { TodoService } from './service';
+import { Todo } from './todo';
 
 @Component({
   selector: 'app-root',
@@ -12,61 +14,67 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
   styleUrl: './app.component.scss'
 })
 export class AppComponent implements OnInit {
-  title = 'Todo List';
-  todos: any[] = [];
-  newTodo: any = { title: '', completed: false };
-  apiUrl = 'http://localhost:8000/tarefas';
+  title = 'Todo List'
+  todos: Todo[] = [];
+  newTodo: Partial<Todo> = { title: '', completed: false };
 
-  constructor(private http: HttpClient) {}
+  // Adicionado service ao contrutor
+  constructor(private todoService: TodoService) { }
 
-  ngOnInit() {
-    this.http.get(this.apiUrl).subscribe(
-      (data: any) => {
+  ngOnInit(): void {
+    this.todoService.getTodos().subscribe({
+      next: (data: Todo[]) => {
         this.todos = data;
       },
-      (erro) => {
+      error: (erro) => {
         console.error('Erro ao carregar tarefas:', erro);
         this.todos = [
           { id: 1, title: 'Tarefa offline 1', completed: false },
           { id: 2, title: 'Tarefa offline 2', completed: true }
         ];
       }
-    );
+    });
   }
 
   addTodo() {
-    if (!this.newTodo.title.trim()) return;
-    
-    this.http.post(this.apiUrl, {
-      title: this.newTodo.title
-    }).subscribe(
-      (response: any) => {
+    if (!(this.newTodo.title?.trim() ?? '')) return;
+
+    const todoToSend = {
+      title: this.newTodo.title,
+      completed: false
+    };
+
+    this.todoService.addTodo(todoToSend).subscribe({
+      next: (response) => {
         this.todos.push(response);
-        
         this.newTodo = { title: '', completed: false };
       },
-      (erro) => {
-        console.error('Erro ao adicionar tarefa:', erro);
-        const fakeTodo = {
-          id: Math.floor(Math.random() * 1000),
-          title: this.newTodo.title,
+      error: (error) => {
+        console.error('Erro ao adicionar tarefa:', error);
+        const fakeTodo: Todo = {
+          id: Math.floor(Math.random() * 1000000),
+          title: this.newTodo.title ?? '',
           completed: false
         };
         this.todos.push(fakeTodo);
         this.newTodo = { title: '', completed: false };
       }
-    );
+    });
   }
 
   removeTodo(id: number) {
-    this.http.delete(`${this.apiUrl}/${id}`).subscribe(
-      () => {
-        this.todos = this.todos.filter(todo => todo.id !== id);
+    this.todoService.deleteTodo(id).subscribe({
+      next: () => {
+        this.filterTodo(id);
       },
-      (erro) => {
+      error: (erro) => {
         console.error('Erro ao remover tarefa:', erro);
-        this.todos = this.todos.filter(todo => todo.id !== id);
+        this.filterTodo(id);
       }
-    );
+    });
+  }
+
+  filterTodo(id: number){
+    this.todos = this.todos.filter(todo => todo.id !== id);
   }
 }
