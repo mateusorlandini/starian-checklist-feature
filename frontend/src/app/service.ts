@@ -7,7 +7,7 @@ import { Todo } from './todo';
 // Criado Service
 @Injectable({ providedIn: 'root' })
 export class TodoService {
-  private apiUrl = 'http://localhost:8000/tarefas';
+  private apiUrl = 'http://localhost:8000/api/tarefas';
 
   constructor(private http: HttpClient) {}
 
